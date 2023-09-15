@@ -1,0 +1,19 @@
+{
+    "name": "Twitter Utility.",
+    "version": "1.0",
+    "description": "Twitter Utility.",
+    "manifest_version": 3,
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [{
+        "matches": ["https://*.twitter.com/*"],
+        "js": ["contentScript.js"]
+    }],
+    "action": {
+        "default_icon": "icon.png",
+        "default_title": "Twitter Utility",
+        "default_popup": "popup.html"
+    },
+    "permissions": ["tabs"]
+}
