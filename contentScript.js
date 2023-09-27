@@ -287,7 +287,6 @@ async function OnTweetClean(message) {
                 var after = window.scrollY
 
                 if (before == after) {
-                    alert(before + " / " + after)
                     scrollCounter++;
                     await sleep(delay);
                     if (scrollCounter > 10) {
