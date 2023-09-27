@@ -192,6 +192,163 @@ async function OnRandom() {
     alert("추첨 완료!");
 }
 
+async function OnTweetClean(message) {
+
+
+    window.focus();
+    window.scroll(0, 0);
+    await sleep(500);
+
+    var scrollCounter = 0
+
+    var delay = message.delay
+    var deleteRetweet = message.deleteRetweet
+    var deleteMytweet = message.deleteMytweet
+
+    var notMyTweetSet = new Set();
+    var totalDeleteCount = 0;
+    while (true) {
+        if (!deleteRetweet && !deleteMytweet)
+            break
+
+        var deletecount = 0;
+
+        var timelineElement = document.querySelectorAll('[aria-label^="타임라인:"]');
+        if (timelineElement.length == 0) {
+            throw ("Timeline find failed");
+        }
+
+        var cellInnverDives = timelineElement[0].querySelectorAll('[data-testid="cellInnerDiv"]');
+        for (var i = 0; i < cellInnverDives.length; i++) {
+            var cellElement = cellInnverDives[i];
+
+            if (notMyTweetSet.has(cellElement))
+                continue;
+
+            var socialContext = cellElement.querySelectorAll('[data-testid="socialContext"]');
+            if (socialContext.length != 0) {
+                if (socialContext[0].childNodes[0].textContent == "재게시했습니다" && deleteRetweet) {
+                    var unretweet = cellElement.querySelectorAll('[aria-label$="재게시. 재게시함"]');
+
+                    if (unretweet.length == 0) {
+                        continue;
+                    }
+
+                    (unretweet[0]).click();
+                    await sleep(delay);
+                    var unretweetConfirm = document.querySelectorAll('[data-testid="unretweetConfirm"]');
+                    unretweetConfirm[0].click();
+                    deletecount += 1;
+                }
+            } else if (deleteMytweet) {
+                var moreButton = cellElement.querySelectorAll('[aria-label="더 보기"]');
+
+                if (moreButton.length == 0)
+                    continue;
+
+                moreButton[0].click();
+                await sleep(delay)
+
+                var dropdown = document.querySelectorAll('[data-testid="Dropdown"]');
+
+                if (dropdown.length == 0)
+                    continue;
+
+                var firstButton = dropdown[0].querySelectorAll('[role="menuitem"]')[0];
+
+                if (firstButton.querySelector('span').textContent == "삭제하기") {
+                    firstButton.click();
+                    await sleep(delay);
+                    var button = document.querySelectorAll('[data-testid="confirmationSheetConfirm"]');
+                    if (button.length != 0) {
+                        button[0].click();
+                        deletecount += 1;
+                    }
+                } else {
+                    dropdown[0].parentNode.removeChild(dropdown[0]);
+                    notMyTweetSet.add(cellElement);
+                }
+            }
+
+            await sleep(delay);
+        }
+        totalDeleteCount += deletecount;
+
+        var flag = false;
+        if (deletecount <= 10) {
+
+            while (true) {
+                var before = window.screenTop
+
+                window.focus();
+                window.scrollBy(0, 400);
+                await sleep(delay);
+                var after = window.screenTop
+
+                if (before == after) {
+                    scrollCounter++;
+                    if (scrollCounter > 10) {
+                        flag = true;
+                        break;
+                    }
+                } else
+                    break;
+            }
+
+            if (flag)
+                break;
+        }
+    }
+
+    alert(totalDeleteCount + "개의 트윗 삭제 완료!");
+}
+
+async function OnHeartClean(message) {
+
+    var skipSet = new Set();
+    var totalDeleteCount = 0
+
+    var timelineElement = document.querySelectorAll('[aria-label^="타임라인:"]');
+    if (timelineElement.length == 0) {
+        throw ("Timeline find failed");
+    }
+
+    while (true) {
+        var cellInnverDives = timelineElement[0].querySelectorAll('[data-testid="cellInnerDiv"]');
+
+        for (var i = 0; i < cellInnverDives.length; i++) {
+            if (skipSet.has(cellInnverDives[i]))
+                continue
+            skipSet.add(cellInnverDives[i])
+            var unlike = timelineElement[0].querySelectorAll('[data-testid="unlike"]');
+            if (unlike.length == 0)
+                continue
+            unlike[0].click()
+            totalDeleteCount++
+        }
+
+        var isScrolled = false
+        for (var i = 0; i < 10; i++) {
+            var beforeScroll = window.scrollY
+            window.focus();
+            window.scrollBy(0, 500);
+            await sleep(300);
+            var nowScroll = window.scrollY
+
+            if (beforeScroll != nowScroll) {
+                isScrolled = true
+                break
+            }
+        }
+
+        if (!isScrolled)
+            break
+    }
+
+    alert(totalDeleteCount + "개의 마음 삭제 완료!");
+}
+
+
 
 chrome.runtime.onMessage.addListener((obj, sender, response) => {
     if (obj === "changeLogo")
@@ -200,4 +357,8 @@ chrome.runtime.onMessage.addListener((obj, sender, response) => {
         makeButton();
     else if (obj === "makeRandomButton")
         makeRandomButton();
+    else if (obj.isDeleteHeart)
+        OnHeartClean(obj);
+    else if (obj.deleteMytweet || obj.deleteRetweet)
+        OnTweetClean(obj);
 });
