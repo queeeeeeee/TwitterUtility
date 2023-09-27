@@ -1,6 +1,6 @@
 {
     "name": "Twitter Utility.",
-    "version": "1.0",
+    "version": "1.1",
     "description": "Twitter Utility.",
     "manifest_version": 3,
     "background": {
