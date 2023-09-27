@@ -243,16 +243,18 @@ async function OnTweetClean(message) {
             } else if (deleteMytweet) {
                 var moreButton = cellElement.querySelectorAll('[aria-label="더 보기"]');
 
-                if (moreButton.length == 0)
+                if (moreButton.length == 0) {
                     continue;
+                }
 
                 moreButton[0].click();
                 await sleep(delay)
 
                 var dropdown = document.querySelectorAll('[data-testid="Dropdown"]');
 
-                if (dropdown.length == 0)
+                if (dropdown.length == 0) {
                     continue;
+                }
 
                 var firstButton = dropdown[0].querySelectorAll('[role="menuitem"]')[0];
 
@@ -276,17 +278,18 @@ async function OnTweetClean(message) {
 
         var flag = false;
         if (deletecount <= 10) {
-
             while (true) {
-                var before = window.screenTop
+                var before = window.scrollY
 
                 window.focus();
                 window.scrollBy(0, 400);
                 await sleep(delay);
-                var after = window.screenTop
+                var after = window.scrollY
 
                 if (before == after) {
+                    alert(before + " / " + after)
                     scrollCounter++;
+                    await sleep(delay);
                     if (scrollCounter > 10) {
                         flag = true;
                         break;
@@ -298,6 +301,8 @@ async function OnTweetClean(message) {
             if (flag)
                 break;
         }
+
+        scrollCounter = 0
     }
 
     alert(totalDeleteCount + "개의 트윗 삭제 완료!");
