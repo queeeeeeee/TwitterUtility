@@ -67,13 +67,13 @@ async function makeButton() {
     var retweet = null;
     for (var i = 0; i < retweets.length; i++) {
         var now = retweets[i];
-        var target = now.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode;
+        var target = now.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode;
+        // alert(target.innerHTML)
         if (target.getAttribute('tabindex') === "-1") {
             retweet = retweets[i];
             break;
         }
     }
-
     if (retweet == null) {
         await sleep(200);
         makeButton();
