@@ -115,6 +115,19 @@ async function makeRandomButton() {
     newButton.addEventListener('click', async function(event) {
         OnRandom();
     });
+
+    var newButton = backButton.parentNode.cloneNode(true);
+    backButton.parentNode.parentNode.childNodes[1].after(newButton);
+    newButton.id = "staticsButton";
+    var pathElement = newButton.childNodes[0].childNodes[0].childNodes[0].childNodes[0].childNodes[0];
+
+    if (pathElement) {
+        pathElement.setAttribute('d', "M3 4.5C3 3.12 4.12 2 5.5 2h13C19.88 2 21 3.12 21 4.5v15c0 1.38-1.12 2.5-2.5 2.5h-13C4.12 22 3 20.88 3 19.5v-15zM5.5 4c-.28 0-.5.22-.5.5v15c0 .28.22.5.5.5h13c.28 0 .5-.22.5-.5v-15c0-.28-.22-.5-.5-.5h-13zM16 10H8V8h8v2zm-8 2h8v2H8v-2z");
+    }
+
+    newButton.addEventListener('click', async function(event) {
+        OnRetweetStatics();
+    });
 }
 
 //random rt
@@ -190,6 +203,181 @@ async function OnRandom() {
     window.scroll(0, window.scrollY - 150);
     await sleep(200);
     alert("추첨 완료!");
+}
+
+
+async function OnRetweetStatics() {
+    const initialUrl = window.location.href;
+    if (!initialUrl.endsWith("retweets")) {
+        alert("RT 목록 취합은 리트윗 페이지에서만 가능합니다.");
+        return;
+    }
+
+    alert("RT 목록 취합 시작");
+
+    var element = await findObject('[aria-label="타임라인: 재게시"]');
+
+    var prevY = 0;
+
+    var retweeters = new Set();
+    window.scroll(0, 0);
+
+    await sleep(500);
+
+    while (true) {
+
+        if (initialUrl != window.location.href) {
+            alert("취합 취소됨");
+            return;
+        }
+
+        var currentY = window.scrollY + 500;
+
+        if (currentY == prevY)
+            break;
+
+        window.scroll(0, currentY);
+
+        await sleep(500);
+
+        var foundRetweets = element.querySelectorAll('[data-testid="cellInnerDiv"]');
+        for(var i=0;i<foundRetweets.length;i++)
+        {
+            retweeters.add(foundRetweets[i]);
+        }
+
+        prevY = currentY;
+    }
+
+
+    let retweetersArray = Array.from(retweeters);
+
+    var statics = [];
+    var log = "";
+    log += retweetersArray.length;
+    log += "retweets. <br>";
+
+
+    var removed = new Set();
+
+    for(var i=0;i<retweetersArray.length;i++)
+    {        
+        var result = [];
+
+        var spans = retweetersArray[i].querySelectorAll("span");
+        for(var j=0;j<spans.length;j++)
+        {
+            if(!!spans[j].innerHTML)
+            {
+                if(removed.has(spans[j].parentNode))
+                    continue;
+
+
+                var findInnerImg = spans[j].querySelectorAll("img");
+
+                if(findInnerImg.length > 0)
+                {
+                    var finalName = "";
+                    var childs = findInnerImg[0].parentNode.childNodes;
+
+                    for(var k=0;k<childs.length;k++)
+                    {
+                        console.log(childs[k]);
+                        console.log(childs[k].tagName);
+
+                        if(childs[k].tagName === "SPAN")
+                            finalName += childs[k].innerHTML;
+                        if(childs[k].tagName === "IMG")
+                            finalName += childs[k].alt;
+                    }
+
+                    result.push(finalName);
+                    log += finalName;
+                    log += " | ";
+                    removed.add(findInnerImg[0].parentNode);
+                    continue;
+                }
+
+                var findInnerSpan = spans[j].querySelectorAll("span");
+
+                if(findInnerSpan.length > 0)
+                {
+                    continue;
+                }
+
+                var findInnerA = spans[j].querySelectorAll("a");
+
+                if(findInnerA.length > 0)
+                {
+                    result.push(findInnerA[0].innerHTML);
+                    log += findInnerA[0].innerHTML;
+                    log += " | ";
+                    removed.add(findInnerA[0].parentNode);
+                    continue;
+                }
+
+                var findInnerSvg = spans[j].querySelectorAll("svg");
+
+                if(findInnerSvg.length > 0)
+                {
+                    continue;
+                }
+
+
+                result.push(spans[j].innerHTML);
+                log += spans[j].innerHTML;
+                log += " | ";
+                removed.add(spans[j].parentNode);
+            }
+        }
+
+        log += "<br>========================<br>";
+        statics.push(result);
+    }
+    
+    var newWindow = window.open('', '_blank');
+
+    var output = '\
+        <table border="1">\
+	        <th>이름</th>\
+	        <th>ID</th>\
+            <th>상대가 나를 팔로우</th>\
+            <th>내가 상대를 팔로우</th>\
+    ';
+
+
+    for(var i=0;i<statics.length - 1;i++)
+    {
+        output += "<tr>";
+
+        var current = statics[i];
+        output += '<td>' + current[0] + '</td>';
+        output += '<td>' + current[1] + '</td>';
+        if(current[2] === "나를 팔로우합니다")
+        {
+            output += "<td>O</td>";
+            if(current[3] === "팔로잉")
+                output += "<td>O</td>";
+            else
+                output += "<td>X</td>";
+        }
+        else
+        {
+            output += "<td>X</td>";
+            if(current[2] === "팔로잉")
+                output += "<td>O</td>";
+            else
+                output += "<td>X</td>";
+        }
+
+        output += "</tr>";
+    }
+
+    output += "</table>";
+
+    output += "<br><br><br><br>";
+    newWindow.document.write(output);
+    //newWindow.document.write(log);
 }
 
 async function OnTweetClean(message) {
