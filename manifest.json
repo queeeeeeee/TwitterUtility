@@ -7,7 +7,7 @@
         "service_worker": "background.js"
     },
     "content_scripts": [{
-        "matches": ["https://*.twitter.com/*"],
+        "matches": ["https://*.twitter.com/*","https://*.x.com/*"],
         "js": ["contentScript.js"]
     }],
     "action": {
