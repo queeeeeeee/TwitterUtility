@@ -1,3 +1,7 @@
+function checkIsTwitter(tab) {
+    return (tab.url.indexOf("twitter.com") != -1 || tab.url.indexOf("x.com") != -1)
+}
+
 async function getActiveTabURL() {
     const tabs = await chrome.tabs.query({
         currentWindow: true,
@@ -51,7 +55,7 @@ const OnTweetClean = async() => {
 document.addEventListener("DOMContentLoaded", async() => {
     const activeTab = await getActiveTabURL();
     var container = document.getElementsByName("container")[0];
-    if (activeTab.url.includes("twitter.com")) {
+    if (checkIsTwitter(activeTab)) {
         OnChangeLogo();
         container.innerHTML = '작동중';
     } else {
@@ -66,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async() => {
         output.innerHTML = this.value;
     }
 
-    if (activeTab.url.includes("twitter.com") && activeTab.url.includes("with_replies")) {
+    if (checkIsTwitter(activeTab) && activeTab.url.includes("with_replies")) {
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '';
 
@@ -115,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async() => {
         button.style = "margin-top: 1rem;margin-bottom: 1rem"
         container.appendChild(button);
 
-    } else if (activeTab.url.includes("twitter.com") && activeTab.url.includes("likes")) {
+    } else if ((checkIsTwitter(activeTab))&& activeTab.url.includes("likes")) {
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '';
 
