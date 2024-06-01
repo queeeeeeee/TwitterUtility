@@ -56,16 +56,6 @@ async function changeLogo(text, backgroundColor, coordinates) {
             pathElement.setAttribute('d', logo);
         }
     }
-
-    element = await findObject('[aria-label="그록"]');
-    if (element) {
-        element.style.cssText = 'display: None;'
-    }
-
-    element = await findObject('[aria-label="Premium"]');
-    if (element) {
-        element.style.cssText = 'display: None;'
-    }
 }
 
 async function makeButton() {
