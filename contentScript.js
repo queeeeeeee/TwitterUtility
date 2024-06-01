@@ -56,6 +56,16 @@ async function changeLogo(text, backgroundColor, coordinates) {
             pathElement.setAttribute('d', logo);
         }
     }
+
+    element = await findObject('[aria-label="그록"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
+    element = await findObject('[aria-label="Premium"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
 }
 
 async function makeButton() {
@@ -514,9 +524,14 @@ async function OnHeartClean(message) {
             skipSet.add(cellInnverDives[i])
             var unlike = timelineElement[0].querySelectorAll('[data-testid="unlike"]');
             if (unlike.length == 0)
-                continue
-            unlike[0].click()
-            totalDeleteCount++
+            {
+                continue;
+            }
+            for(var i=0;i<unlike.length;i++)
+            {
+                unlike[i].click();
+                totalDeleteCount++;
+            }
         }
 
         var isScrolled = false
@@ -537,7 +552,7 @@ async function OnHeartClean(message) {
             break
     }
 
-    alert(totalDeleteCount + "개의 마음 삭제 완료!");
+    alert("마음 삭제 완료!");
 }
 
 
