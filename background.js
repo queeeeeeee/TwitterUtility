@@ -11,9 +11,14 @@ const OnResult = (result) => {};
 
 async function OnChangeLogo() {
     const activeTab = await getActiveTabURL();
-    var message = "changeLogo"
-
-    chrome.tabs.sendMessage(activeTab.id, message, OnResult);
+    chrome.storage.sync.get(["hideElements"], function(items){
+        var message = {
+            type: "changeLogo",
+            hideElements: items["hideElements"]
+        }
+    
+        chrome.tabs.sendMessage(activeTab.id, message, OnResult);
+    });
 }
 
 async function OnMakeButton() {
@@ -27,7 +32,6 @@ async function OnMakeRandomButton() {
     var message = "makeRandomButton"
     chrome.tabs.sendMessage(activeTab.id, message, OnResult);
 }
-
 
 function checkIsTwitter(tab) {
     return (tab.url.indexOf("twitter.com") != -1 || tab.url.indexOf("x.com") != -1)
@@ -57,3 +61,4 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         }
     }
 })
+

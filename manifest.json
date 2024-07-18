@@ -1,6 +1,6 @@
 {
     "name": "Twitter Utility.",
-    "version": "1.1",
+    "version": "1.5",
     "description": "Twitter Utility.",
     "manifest_version": 3,
     "background": {
@@ -15,5 +15,5 @@
         "default_title": "Twitter Utility",
         "default_popup": "popup.html"
     },
-    "permissions": ["tabs"]
+    "permissions": ["tabs","storage"]
 }

@@ -15,18 +15,29 @@ const OnResult = (result) => {};
 
 async function OnChangeLogo() {
     const activeTab = await getActiveTabURL();
-    var message = {
-        type: "changeLogo"
-    }
-
-    chrome.tabs.sendMessage(activeTab.id, message, OnResult);
+    chrome.storage.sync.get(["hideElements"], function(items){
+        var message = {
+            type: "changeLogo",
+            hideElements: items["hideElements"]
+        }
+    
+        chrome.tabs.sendMessage(activeTab.id, message, OnResult);
+    });
 }
+
+function refreshCurrentTab() {
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      var tab = tabs[0];
+      chrome.tabs.reload(tab.id,{ bypassCache: true });
+    });
+  }
 
 
 const OnHeartClean = async() => {
     const activeTab = await getActiveTabURL();
+    var slider = document.getElementById("DelayRange");
     var message = {
-        delay: -1,
+        delay: slider.value,
         deleteRetweet: false,
         deleteMytweet: false,
         isDeleteHeart: true
@@ -69,6 +80,17 @@ document.addEventListener("DOMContentLoaded", async() => {
     slider.oninput = function() {
         output.innerHTML = this.value;
     }
+
+    var hideElement = document.getElementById("hideElements");
+    hideElement.addEventListener('change', function() {
+        chrome.storage.sync.set({ "hideElements": this.checked }, function(){
+            refreshCurrentTab()
+        });
+    });
+
+    chrome.storage.sync.get(["hideElements"], function(items){
+        hideElement.checked = items["hideElements"];
+    });
 
     if (checkIsTwitter(activeTab) && activeTab.url.includes("with_replies")) {
         const container = document.getElementsByName("container")[0];

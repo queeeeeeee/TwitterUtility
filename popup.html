@@ -84,8 +84,12 @@
     }
 </style>
 
-<body style="margin-bottom: 5rem;">
+<body style="margin-bottom: 6rem;">
     <h1 style="text-align: center;">Twitter Utility</h1>
+    <div style="display: flex; align-items: center; justify-content: center; margin: 1rem;">
+        <input type="checkbox" id="hideElements">
+        <label for="hideElements">이상한 것들 숨기기</label>
+    </div>
     <div class="slidecontainer" style="text-align: center;">
         <input type="range" min="30" max="500" value="100" id="DelayRange">
         <h4>딜레이 : <span id="delayValue"></span>ms</h4>

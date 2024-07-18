@@ -47,7 +47,21 @@ async function findObjectAll(findQuery) {
 
 
 
-async function changeLogo(text, backgroundColor, coordinates) {
+async function changeLogo(message) {
+    if(!message.hideElements)
+        return
+
+    element = await findObject('[rel="shortcut icon"]');
+    if (element) {
+        var originalElement = element;
+        var clonedElement = originalElement.cloneNode(true);
+        clonedElement.href = "//abs.twimg.com/favicons/twitter.2.ico"
+        clonedElement.id = "new icon";
+        var parentElement = originalElement.parentNode;
+        parentElement.insertBefore(clonedElement, originalElement.nextSibling);
+        parentElement.removeChild(originalElement);
+    }
+
     var element = await findObject('[href="/home"]');
     if (element.childNodes.length > 0) {
         const pathElement = element.childNodes[0].childNodes[0].childNodes[0].childNodes[0];
@@ -56,6 +70,32 @@ async function changeLogo(text, backgroundColor, coordinates) {
             pathElement.setAttribute('d', logo);
         }
     }
+
+    element = await findObject('[aria-label="그록"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
+    element = await findObject('[aria-label="Premium"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
+    element = await findObject('[aria-label="커뮤니티"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
+    element = await findObject('[aria-label="Premium 구독하기"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
+    element = await findObject('[aria-label="인증된 조직"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
 }
 
 async function makeButton() {
@@ -497,6 +537,7 @@ async function OnTweetClean(message) {
 
 async function OnHeartClean(message) {
 
+    
     var skipSet = new Set();
     var totalDeleteCount = 0
 
@@ -529,7 +570,7 @@ async function OnHeartClean(message) {
             var beforeScroll = window.scrollY
             window.focus();
             window.scrollBy(0, 500);
-            await sleep(300);
+            await sleep(message.delay);
             var nowScroll = window.scrollY
 
             if (beforeScroll != nowScroll) {
@@ -548,9 +589,7 @@ async function OnHeartClean(message) {
 
 
 chrome.runtime.onMessage.addListener((obj, sender, response) => {
-    if (obj === "changeLogo")
-        changeLogo();
-    else if (obj === "makeButton")
+    if (obj === "makeButton")
         makeButton();
     else if (obj === "makeRandomButton")
         makeRandomButton();
@@ -558,4 +597,6 @@ chrome.runtime.onMessage.addListener((obj, sender, response) => {
         OnHeartClean(obj);
     else if (obj.deleteMytweet || obj.deleteRetweet)
         OnTweetClean(obj);
+    else if (obj.type === "changeLogo")
+        changeLogo(obj);
 });
