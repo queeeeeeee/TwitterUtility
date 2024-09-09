@@ -21,6 +21,19 @@ async function OnChangeLogo() {
     });
 }
 
+async function OnRemoveBlueMark(){
+    const activeTab = await getActiveTabURL();
+    chrome.storage.sync.get(["hideBlueMark","hideBlueMarkButton"], function(items){
+        var message = {
+            type: "hideBlueMark",
+            hideBlueMark: items["hideBlueMark"],
+            hideBlueMarkButton: items["hideBlueMarkButton"]
+        }
+
+        chrome.tabs.sendMessage(activeTab.id, message, OnResult);
+    });
+}
+
 async function OnMakeButton() {
     const activeTab = await getActiveTabURL();
     var message = "makeButton"
@@ -52,6 +65,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         return;
 
     OnChangeLogo();
+    OnRemoveBlueMark();
 
     if (urlContains(tab, "status")) {
         if (urlEndsWith(tab, "retweets") | urlEndsWith(tab, "quotes") | urlEndsWith(tab, "likes")) {

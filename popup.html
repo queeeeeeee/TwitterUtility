@@ -35,38 +35,38 @@
         will-change: transform, opacity;
         z-index: 0;
     }
-    
+
     .button-17:hover {
         background: #F6F9FE;
         color: #174ea6;
     }
-    
+
     .button-17:active {
         box-shadow: 0 4px 4px 0 rgb(60 64 67 / 30%), 0 8px 12px 6px rgb(60 64 67 / 15%);
         outline: none;
     }
-    
+
     .button-17:focus {
         outline: none;
         border: 2px solid #4285f4;
     }
-    
+
     .button-17:not(:disabled) {
         box-shadow: rgba(60, 64, 67, .3) 0 1px 3px 0, rgba(60, 64, 67, .15) 0 4px 8px 3px;
     }
-    
+
     .button-17:not(:disabled):hover {
         box-shadow: rgba(60, 64, 67, .3) 0 2px 3px 0, rgba(60, 64, 67, .15) 0 6px 10px 4px;
     }
-    
+
     .button-17:not(:disabled):focus {
         box-shadow: rgba(60, 64, 67, .3) 0 1px 3px 0, rgba(60, 64, 67, .15) 0 4px 8px 3px;
     }
-    
+
     .button-17:not(:disabled):active {
         box-shadow: rgba(60, 64, 67, .3) 0 4px 4px 0, rgba(60, 64, 67, .15) 0 8px 12px 6px;
     }
-    
+
     .button-17:disabled {
         box-shadow: rgba(60, 64, 67, .3) 0 1px 3px 0, rgba(60, 64, 67, .15) 0 4px 8px 3px;
     }
@@ -86,11 +86,25 @@
 
 <body style="margin-bottom: 6rem;">
     <h1 style="text-align: center;">Twitter Utility</h1>
-    <div style="display: flex; align-items: center; justify-content: center; margin: 1rem;">
-        <input type="checkbox" id="hideElements">
-        <label for="hideElements">이상한 것들 숨기기</label>
-    </div>
-    <div class="slidecontainer" style="text-align: center;">
+    <fieldset>
+        <legend>기본 옵션</legend>
+        <div style="display: flex; align-items: center; ">
+            <input type="checkbox" id="hideElements">
+            <label for="hideElements">이상한 것들 숨기기</label>
+        </div>
+
+        <div style="display: flex; align-items: center; ">
+            <input type="checkbox" id="hideBlueMark">
+            <label for="hideBlueMark">파란 딱지 숨기기</label>
+        </div>
+
+        <div style="display: flex; align-items: center; ">
+            <input type="checkbox" id="hideBlueMarkButton">
+            <label for="hideBlueMarkButton">ㄴ 숨김 표시 숨기기</label>
+        </div>
+    </fieldset>
+
+    <div class="slidecontainer" name="slidecontainer" style="text-align: center;">
         <input type="range" min="30" max="500" value="100" id="DelayRange">
         <h4>딜레이 : <span id="delayValue"></span>ms</h4>
     </div>

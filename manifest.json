@@ -1,6 +1,12 @@
 {
     "name": "Twitter Utility.",
-    "version": "1.5",
+    "version": "1.6",
+    "web_accessible_resources": [
+        {
+            "resources": ["data/*"],
+            "matches": ["<all_urls>"]
+        }
+    ],
     "description": "Twitter Utility.",
     "manifest_version": 3,
     "background": {

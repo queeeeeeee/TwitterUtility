@@ -1,3 +1,35 @@
+var whiteList = null
+
+fetch(chrome.runtime.getURL("data/whitelist.txt"))
+    .then(response => response.text())
+    .then(text => {
+        var lines = text.split(/\r?\n/);
+        var cleanedLines = lines.map(line => line.replace(/[\s]+/g, ''));
+        whiteList = new Set(cleanedLines)
+
+        console.log(whiteList)
+    })
+    .catch(error => console.error("Error fetching static file:", error));
+
+const observer = new MutationObserver((mutationsList, observer) => {
+    for (const mutation of mutationsList) {
+        if (mutation.type === 'childList') {
+            onDOMUpdate();
+        }
+    }
+});
+
+
+var hideBlueMark = false
+var hideBlueMarkButton = false
+
+const targetNode = document.body;
+
+const config = { childList: true, subtree: true };
+
+observer.observe(targetNode, config);
+
+
 const logo = "M23.643 4.937c-.835.37-1.732.62-2.675.733.962-.576 1.7-1.49 2.048-2.578-.9.534-1.897.922-2.958 1.13-.85-.904-2.06-1.47-3.4-1.47-2.572 0-4.658 2.086-4.658 4.66 0 .364.042.718.12 1.06-3.873-.195-7.304-2.05-9.602-4.868-.4.69-.63 1.49-.63 2.342 0 1.616.823 3.043 2.072 3.878-.764-.025-1.482-.234-2.11-.583v.06c0 2.257 1.605 4.14 3.737 4.568-.392.106-.803.162-1.227.162-.3 0-.593-.028-.877-.082.593 1.85 2.313 3.198 4.352 3.234-1.595 1.25-3.604 1.995-5.786 1.995-.376 0-.747-.022-1.112-.065 2.062 1.323 4.51 2.093 7.14 2.093 8.57 0 13.255-7.098 13.255-13.254 0-.2-.005-.402-.014-.602.91-.658 1.7-1.477 2.323-2.41z"
 
 function sleep(ms) {
@@ -45,7 +77,100 @@ async function findObjectAll(findQuery) {
     return find
 }
 
+function waitForNonNullAsync(objGetter, interval = 100) {
+    return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+            if (objGetter() !== null) {
+                clearInterval(checkInterval);
+                resolve(objGetter());
+            }
+        }, interval);
+    });
+}
 
+function getID(target)
+{
+    var finalName = "error"
+    var userName = target.querySelector('[data-testid="User-Name"]')
+    if(userName)
+    {
+        var idHints = userName.querySelectorAll('[style="text-overflow: unset;"]')
+        var atStartingElements = Array.from(idHints).filter(element => 
+            element.innerHTML.trim().startsWith('@')
+        );
+        finalName = atStartingElements[0].innerHTML
+    }
+    return finalName
+}
+
+async function attachBlueBox(target,id) {
+    if(target.querySelectorAll('[id="clickToSeeButton"]').length != 0)
+        return;
+
+    var original = target.firstChild
+    original.style.display = 'none'
+    var button = document.createElement('div');
+    button.style.textAlign = 'center'
+    button.id = "clickToSeeButton"
+    button.innerHTML = '파란 딱지 [' + id + '] 의 트윗 숨겨짐 : 눌러서 트윗 열기'
+    button.onclick = () => { 
+        if(original.style.display === 'none')
+        {
+            original.style.display = ''
+            button.innerHTML = '파란 딱지 [' + id + '] 의 트윗 보여지는 중 : 눌러서 트윗 숨기기'
+        }
+        else
+        {
+            original.style.display = 'none'
+            button.innerHTML = '파란 딱지 [' + id + '] 의 트윗 숨겨짐 : 눌러서 트윗 열기'
+        }
+     }
+    target.prepend(button);
+}
+
+
+
+async function onDOMUpdate(){
+    if(!hideBlueMark)
+        return;
+
+    var timeline = await findObject('[aria-label^="타임라인"]');
+    
+    if(!timeline)
+        return;
+
+    if(!whiteList){
+        await waitForNonNullAsync(() => whiteList,1);
+    }
+
+    var cellInnerDivs = timeline.querySelectorAll('[data-testid="cellInnerDiv"]');
+
+    for (var i = 0; i < cellInnerDivs.length; i++) {
+        var current = cellInnerDivs[i];
+
+        if(current.querySelectorAll('[aria-label="인증된 계정"]').length != 0)
+        {
+            var id = getID(current)
+            
+             if(whiteList.has(id))
+                continue;
+
+            if(hideBlueMarkButton)
+            {
+                current.innerHTML = ''
+                continue;
+            }
+
+            attachBlueBox(current,id)
+            current.style.border = '1px solid #303030'
+        }
+    }
+}
+
+function OnHideBlueMark(message){
+    hideBlueMark = message.hideBlueMark
+    hideBlueMarkButton = message.hideBlueMarkButton
+}
 
 async function changeLogo(message) {
     if(!message.hideElements)
@@ -599,4 +724,6 @@ chrome.runtime.onMessage.addListener((obj, sender, response) => {
         OnTweetClean(obj);
     else if (obj.type === "changeLogo")
         changeLogo(obj);
+    else if(obj.type === "hideBlueMark")
+        OnHideBlueMark(obj)
 });

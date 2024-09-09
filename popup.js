@@ -14,7 +14,7 @@ const OnResult = (result) => {};
 
 
 async function OnChangeLogo() {
-    const activeTab = await getActiveTabURL();
+    var activeTab = await getActiveTabURL();
     chrome.storage.sync.get(["hideElements"], function(items){
         var message = {
             type: "changeLogo",
@@ -23,12 +23,26 @@ async function OnChangeLogo() {
     
         chrome.tabs.sendMessage(activeTab.id, message, OnResult);
     });
+
+    activeTab = await getActiveTabURL();
+    chrome.storage.sync.get(["hideBlueMark","hideBlueMarkButton"], function(items){
+        var message = {
+            type: "hideBlueMark",
+            hideBlueMark: items["hideBlueMark"],
+            hideBlueMarkButton: items["hideBlueMarkButton"]
+        }
+
+        chrome.tabs.sendMessage(activeTab.id, message, OnResult);
+    });
 }
 
 function refreshCurrentTab() {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       var tab = tabs[0];
+
+      console.log('reload start')
       chrome.tabs.reload(tab.id,{ bypassCache: true });
+      console.log('reload fin')
     });
   }
 
@@ -66,11 +80,13 @@ const OnTweetClean = async() => {
 document.addEventListener("DOMContentLoaded", async() => {
     const activeTab = await getActiveTabURL();
     var container = document.getElementsByName("container")[0];
+    var slidercontainer = document.getElementsByName("slidecontainer")[0];
     if (checkIsTwitter(activeTab)) {
         OnChangeLogo();
         container.innerHTML = '작동중';
     } else {
         containter.innerHTML = '트위터에서만 사용 가능합니다.'
+        slidercontainer.style.display = 'none'
     }
 
     var slider = document.getElementById("DelayRange");
@@ -92,15 +108,54 @@ document.addEventListener("DOMContentLoaded", async() => {
         hideElement.checked = items["hideElements"];
     });
 
+
+    var hideBlueMarkButton = document.getElementById("hideBlueMarkButton");
+    hideBlueMarkButton.addEventListener('change', function() {
+        chrome.storage.sync.set({ "hideBlueMarkButton": this.checked }, function(){
+            refreshCurrentTab()
+        });
+    });
+
+    chrome.storage.sync.get(["hideBlueMarkButton"], function(items){
+        hideBlueMarkButton.checked = items["hideBlueMarkButton"];
+    });
+
+    var hideBlueMark = document.getElementById("hideBlueMark");
+    hideBlueMark.addEventListener('change', function() {
+        var value = this.checked
+        chrome.storage.sync.set({ "hideBlueMark": this.checked }, function(){
+            if(value)
+                hideBlueMarkButton.parentNode.style.display = 'flex'
+            else
+                hideBlueMarkButton.parentNode.style.display = 'none'
+
+            refreshCurrentTab()
+        });
+    });
+
+    chrome.storage.sync.get(["hideBlueMark"], function(items){
+        hideBlueMark.checked = items["hideBlueMark"];
+
+        if(items["hideBlueMark"])
+            hideBlueMarkButton.parentNode.style.display = 'flex'
+        else
+            hideBlueMarkButton.parentNode.style.display = 'none'
+    });
+
+
     if (checkIsTwitter(activeTab) && activeTab.url.includes("with_replies")) {
+        const slidercontainer = document.getElementsByName("slidecontainer")[0];
+        slidercontainer.style.display = ''
+
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '';
 
         var fieldset = document.createElement('fieldset');
 
         var legend = document.createElement('legend');
-        legend.textContent = '옵션 선택하기';
+        legend.textContent = '트윗 청소기 옵션';
         fieldset.appendChild(legend);
+        fieldset.appendChild(slidercontainer)
 
         var checkbox1Div = document.createElement('div');
         checkbox1Div.style.display = 'flex';
@@ -144,6 +199,8 @@ document.addEventListener("DOMContentLoaded", async() => {
     } else if ((checkIsTwitter(activeTab))&& activeTab.url.includes("likes")) {
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '';
+        const slidercontainer = document.getElementsByName("slidecontainer")[0];
+        slidercontainer.style.display = ''
 
         var button = document.createElement('button');
         button.onclick = OnHeartClean;
@@ -151,6 +208,8 @@ document.addEventListener("DOMContentLoaded", async() => {
         button.innerHTML = "마음함 청소하기";
         container.appendChild(button);
     } else {
+        const slidercontainer = document.getElementsByName("slidecontainer")[0];
+        slidercontainer.style.display = 'none'
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '트윗 청소기를 사용하시려면 본인의 트윗 및 답글 페이지, 혹은 마음 페이지를 열어주세요.';
         var button = document.getElementsByClassName("CleanButton")[0];
