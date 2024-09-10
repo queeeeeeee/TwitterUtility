@@ -1,13 +1,14 @@
-var whiteList = null
+var whiteList = new Set()
+var whiteListText = ""
+var whiteListFromFiles = new Set()
 
 fetch(chrome.runtime.getURL("data/whitelist.txt"))
     .then(response => response.text())
     .then(text => {
         var lines = text.split(/\r?\n/);
         var cleanedLines = lines.map(line => line.replace(/[\s]+/g, ''));
-        whiteList = new Set(cleanedLines)
-
-        console.log(whiteList)
+        cleanedLines.forEach(item => whiteList.add(item))
+        cleanedLines.forEach(item => whiteListFromFiles.add(item))
     })
     .catch(error => console.error("Error fetching static file:", error));
 
@@ -19,6 +20,17 @@ const observer = new MutationObserver((mutationsList, observer) => {
     }
 });
 
+chrome.storage.sync.get(["whitelist"], function (items) {
+    whiteListText = items["whitelist"];
+    if (!whiteListText) {
+        whiteListText = ""
+        return;
+    }
+
+    var lines = whiteListText.split(/\r?\n/);
+    var cleanedLines = lines.map(line => line.replace(/[\s]+/g, ''));
+    cleanedLines.forEach(item => whiteList.add(item))
+});
 
 var hideBlueMark = false
 var hideBlueMarkButton = false
@@ -36,14 +48,35 @@ function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
 }
 
-async function findObject(findQuery) {
+function isWhiteList(id) {
+    return whiteList.has(id);
+}
+
+function addWhiteList(id) {
+    whiteListText += "\n" + id;
+    whiteList.add(id)
+    chrome.storage.sync.set({ "whitelist": whiteListText }, function () {
+    });
+}
+
+function removeWhiteList(id) {
+    const lines = whiteListText.split('\n');
+    const filteredLines = lines.filter(line => line.trim() !== id);
+    const newText = filteredLines.join('\n');
+    whiteListText = newText;
+    whiteList.delete(id)
+    chrome.storage.sync.set({ "whitelist": whiteListText }, function () {
+    });
+}
+
+async function findObject(findQuery, time = 100, interval = 100) {
     var find = document.querySelectorAll(findQuery);
     if (find.length == 0) {
-        for (var i = 0; i < 100; i++) {
+        for (var i = 0; i < time; i++) {
             find = document.querySelectorAll(findQuery);
             if (find.length != 0)
                 break;
-            await sleep(100);
+            await sleep(interval);
         }
     }
     return find[0]
@@ -88,14 +121,12 @@ function waitForNonNullAsync(objGetter, interval = 100) {
     });
 }
 
-function getID(target)
-{
+function getID(target) {
     var finalName = "error"
     var userName = target.querySelector('[data-testid="User-Name"]')
-    if(userName)
-    {
+    if (userName) {
         var idHints = userName.querySelectorAll('[style="text-overflow: unset;"]')
-        var atStartingElements = Array.from(idHints).filter(element => 
+        var atStartingElements = Array.from(idHints).filter(element =>
             element.innerHTML.trim().startsWith('@')
         );
         finalName = atStartingElements[0].innerHTML
@@ -103,8 +134,8 @@ function getID(target)
     return finalName
 }
 
-async function attachBlueBox(target,id) {
-    if(target.querySelectorAll('[id="clickToSeeButton"]').length != 0)
+async function attachBlueBox(target, id) {
+    if (target.querySelectorAll('[id="clickToSeeButton"]').length != 0)
         return;
 
     var original = target.firstChild
@@ -113,34 +144,32 @@ async function attachBlueBox(target,id) {
     button.style.textAlign = 'center'
     button.id = "clickToSeeButton"
     button.innerHTML = '파란 딱지 [' + id + '] 의 트윗 숨겨짐 : 눌러서 트윗 열기'
-    button.onclick = () => { 
-        if(original.style.display === 'none')
-        {
+    button.onclick = () => {
+        if (original.style.display === 'none') {
             original.style.display = ''
             button.innerHTML = '파란 딱지 [' + id + '] 의 트윗 보여지는 중 : 눌러서 트윗 숨기기'
         }
-        else
-        {
+        else {
             original.style.display = 'none'
             button.innerHTML = '파란 딱지 [' + id + '] 의 트윗 숨겨짐 : 눌러서 트윗 열기'
         }
-     }
+    }
     target.prepend(button);
 }
 
 
 
-async function onDOMUpdate(){
-    if(!hideBlueMark)
+async function onDOMUpdate() {
+    if (!hideBlueMark)
         return;
 
     var timeline = await findObject('[aria-label^="타임라인"]');
-    
-    if(!timeline)
+
+    if (!timeline)
         return;
 
-    if(!whiteList){
-        await waitForNonNullAsync(() => whiteList,1);
+    if (!whiteList) {
+        await waitForNonNullAsync(() => whiteList, 1);
     }
 
     var cellInnerDivs = timeline.querySelectorAll('[data-testid="cellInnerDiv"]');
@@ -148,34 +177,121 @@ async function onDOMUpdate(){
     for (var i = 0; i < cellInnerDivs.length; i++) {
         var current = cellInnerDivs[i];
 
-        if(current.querySelectorAll('[aria-label="인증된 계정"]').length != 0)
-        {
+        if (current.querySelectorAll('[aria-label="인증된 계정"]').length != 0) {
             var id = getID(current)
-            
-             if(whiteList.has(id))
+
+            if (isWhiteList(id))
                 continue;
 
-            if(hideBlueMarkButton)
-            {
+            if (hideBlueMarkButton) {
                 current.innerHTML = ''
                 continue;
             }
 
-            attachBlueBox(current,id)
+            attachBlueBox(current, id)
             current.style.border = '1px solid #303030'
         }
     }
 }
 
-function OnHideBlueMark(message){
+function OnHideBlueMark(message) {
     hideBlueMark = message.hideBlueMark
     hideBlueMarkButton = message.hideBlueMarkButton
 }
 
-async function changeLogo(message) {
-    if(!message.hideElements)
-        return
 
+async function makeWhiteListButton() {
+    var isTimeline = await findObject('[aria-label="프로필 타임라인"]', 100, 10);
+    if (!isTimeline) {
+        return;
+    }
+
+    var button = await findObject('[aria-label="더 보기"]')
+    if (!button) {
+        return;
+    }
+
+    var checkButton = document.querySelectorAll('[id="whiteListButton"]')
+    if (checkButton.length != 0) {
+        while (checkButton.length > 0) {
+            if (checkButton[0].parentNode)
+                checkButton[0].parentElement.removeChild(checkButton[0]);
+            else
+                break;
+        }
+    }
+
+    var profile = await findObject('[data-testid="UserName"]')
+    if (!profile) {
+        return;
+    }
+
+    var profilespans = profile.getElementsByTagName('span');
+    var id = ''
+    for (var i = 0; i < profilespans.length; i++) {
+        if (profilespans[i].innerHTML.startsWith('@'))
+            id = profilespans[i].innerHTML;
+    }
+
+    var buttonParent = button;
+    var buttonParentParent = buttonParent.parentNode;
+    var newButton = buttonParent.cloneNode(true);
+    newButton.id = 'whiteListButton'
+    var svgs = newButton.getElementsByTagName('svg');
+    while (svgs.length > 0) {
+        svgs[0].parentNode.removeChild(svgs[0]);
+    }
+
+    var spans = newButton.getElementsByTagName('span');
+    var buttonInnerSpan = spans[0]
+
+    if (isWhiteList(id)) {
+        buttonInnerSpan.innerHTML = "화이트리스트 O"
+        buttonInnerSpan.parentNode.parentNode.style.backgroundColor = "white"
+        buttonInnerSpan.style.color = "black"
+    }
+    else {
+        buttonInnerSpan.innerHTML = "화이트리스트 X"
+        buttonInnerSpan.parentNode.parentNode.style.backgroundColor = "black"
+        buttonInnerSpan.style.color = "white"
+    }
+
+    buttonInnerSpan.style.paddingLeft = '10px'
+    buttonInnerSpan.style.paddingRight = '10px'
+
+    newButton.onclick = () => {
+        var checkIsWhiteList = isWhiteList(id)
+        if (checkIsWhiteList)
+        {
+            if(whiteListFromFiles.has(id))
+            {
+                alert("파일에서 추가된 화이트리스트는 버튼으로 제거할 수 없습니다. data/whitelist.txt 파일에서 제거해주세요.")
+                return;
+            }
+            removeWhiteList(id)
+        }
+        else
+            addWhiteList(id)
+
+        if (!checkIsWhiteList) {
+            buttonInnerSpan.innerHTML = "화이트리스트 O"
+            buttonInnerSpan.parentNode.parentNode.style.backgroundColor = "white"
+            buttonInnerSpan.style.color = "black"
+        }
+        else {
+            buttonInnerSpan.innerHTML = "화이트리스트 X"
+            buttonInnerSpan.parentNode.parentNode.style.backgroundColor = "black"
+            buttonInnerSpan.style.color = "white"
+        }
+
+    }
+
+    buttonParentParent.insertBefore(newButton, buttonParent.parentNode.lastElementChild);
+}
+
+async function changeLogo(message) {
+    if (!message.hideElements)
+        return
     element = await findObject('[rel="shortcut icon"]');
     if (element) {
         var originalElement = element;
@@ -253,7 +369,7 @@ async function makeButton() {
     var textHolder = newNode.childNodes[0].childNodes[0].childNodes[0].childNodes[0].childNodes[0].childNodes[0];
     textHolder.innerHTML = "인용 보기";
 
-    newNode.addEventListener('click', async function(event) {
+    newNode.addEventListener('click', async function (event) {
         var target = newNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode.parentNode;
         var caret = await findObjectFrom('[data-testid="caret"]', target);
         caret.click();
@@ -277,7 +393,7 @@ async function makeRandomButton() {
         pathElement.setAttribute('d', "M7.0498 7.0498H7.0598M10.5118 3H7.8C6.11984 3 5.27976 3 4.63803 3.32698C4.07354 3.6146 3.6146 4.07354 3.32698 4.63803C3 5.27976 3 6.11984 3 7.8V10.5118C3 11.2455 3 11.6124 3.08289 11.9577C3.15638 12.2638 3.27759 12.5564 3.44208 12.8249C3.6276 13.1276 3.88703 13.387 4.40589 13.9059L9.10589 18.6059C10.2939 19.7939 10.888 20.388 11.5729 20.6105C12.1755 20.8063 12.8245 20.8063 13.4271 20.6105C14.112 20.388 14.7061 19.7939 15.8941 18.6059L18.6059 15.8941C19.7939 14.7061 20.388 14.112 20.6105 13.4271C20.8063 12.8245 20.8063 12.1755 20.6105 11.5729C20.388 10.888 19.7939 10.2939 18.6059 9.10589L13.9059 4.40589C13.387 3.88703 13.1276 3.6276 12.8249 3.44208C12.5564 3.27759 12.2638 3.15638 11.9577 3.08289C11.6124 3 11.2455 3 10.5118 3ZM7.5498 7.0498C7.5498 7.32595 7.32595 7.5498 7.0498 7.5498C6.77366 7.5498 6.5498 7.32595 6.5498 7.0498C6.5498 6.77366 6.77366 6.5498 7.0498 6.5498C7.32595 6.5498 7.5498 6.77366 7.5498 7.0498Z");
     }
 
-    newButton.addEventListener('click', async function(event) {
+    newButton.addEventListener('click', async function (event) {
         OnRandom();
     });
 
@@ -290,7 +406,7 @@ async function makeRandomButton() {
         pathElement.setAttribute('d', "M3 4.5C3 3.12 4.12 2 5.5 2h13C19.88 2 21 3.12 21 4.5v15c0 1.38-1.12 2.5-2.5 2.5h-13C4.12 22 3 20.88 3 19.5v-15zM5.5 4c-.28 0-.5.22-.5.5v15c0 .28.22.5.5.5h13c.28 0 .5-.22.5-.5v-15c0-.28-.22-.5-.5-.5h-13zM16 10H8V8h8v2zm-8 2h8v2H8v-2z");
     }
 
-    newButton.addEventListener('click', async function(event) {
+    newButton.addEventListener('click', async function (event) {
         OnRetweetStatics();
     });
 }
@@ -406,8 +522,7 @@ async function OnRetweetStatics() {
         await sleep(500);
 
         var foundRetweets = element.querySelectorAll('[data-testid="cellInnerDiv"]');
-        for(var i=0;i<foundRetweets.length;i++)
-        {
+        for (var i = 0; i < foundRetweets.length; i++) {
             retweeters.add(foundRetweets[i]);
         }
 
@@ -425,34 +540,29 @@ async function OnRetweetStatics() {
 
     var removed = new Set();
 
-    for(var i=0;i<retweetersArray.length;i++)
-    {        
+    for (var i = 0; i < retweetersArray.length; i++) {
         var result = [];
 
         var spans = retweetersArray[i].querySelectorAll("span");
-        for(var j=0;j<spans.length;j++)
-        {
-            if(!!spans[j].innerHTML)
-            {
-                if(removed.has(spans[j].parentNode))
+        for (var j = 0; j < spans.length; j++) {
+            if (!!spans[j].innerHTML) {
+                if (removed.has(spans[j].parentNode))
                     continue;
 
 
                 var findInnerImg = spans[j].querySelectorAll("img");
 
-                if(findInnerImg.length > 0)
-                {
+                if (findInnerImg.length > 0) {
                     var finalName = "";
                     var childs = findInnerImg[0].parentNode.childNodes;
 
-                    for(var k=0;k<childs.length;k++)
-                    {
+                    for (var k = 0; k < childs.length; k++) {
                         console.log(childs[k]);
                         console.log(childs[k].tagName);
 
-                        if(childs[k].tagName === "SPAN")
+                        if (childs[k].tagName === "SPAN")
                             finalName += childs[k].innerHTML;
-                        if(childs[k].tagName === "IMG")
+                        if (childs[k].tagName === "IMG")
                             finalName += childs[k].alt;
                     }
 
@@ -465,15 +575,13 @@ async function OnRetweetStatics() {
 
                 var findInnerSpan = spans[j].querySelectorAll("span");
 
-                if(findInnerSpan.length > 0)
-                {
+                if (findInnerSpan.length > 0) {
                     continue;
                 }
 
                 var findInnerA = spans[j].querySelectorAll("a");
 
-                if(findInnerA.length > 0)
-                {
+                if (findInnerA.length > 0) {
                     result.push(findInnerA[0].innerHTML);
                     log += findInnerA[0].innerHTML;
                     log += " | ";
@@ -483,8 +591,7 @@ async function OnRetweetStatics() {
 
                 var findInnerSvg = spans[j].querySelectorAll("svg");
 
-                if(findInnerSvg.length > 0)
-                {
+                if (findInnerSvg.length > 0) {
                     continue;
                 }
 
@@ -499,7 +606,7 @@ async function OnRetweetStatics() {
         log += "<br>========================<br>";
         statics.push(result);
     }
-    
+
     var newWindow = window.open('', '_blank');
 
     var output = '\
@@ -511,25 +618,22 @@ async function OnRetweetStatics() {
     ';
 
 
-    for(var i=0;i<statics.length - 1;i++)
-    {
+    for (var i = 0; i < statics.length - 1; i++) {
         output += "<tr>";
 
         var current = statics[i];
         output += '<td>' + current[0] + '</td>';
         output += '<td>' + current[1] + '</td>';
-        if(current[2] === "나를 팔로우합니다")
-        {
+        if (current[2] === "나를 팔로우합니다") {
             output += "<td>O</td>";
-            if(current[3] === "팔로잉")
+            if (current[3] === "팔로잉")
                 output += "<td>O</td>";
             else
                 output += "<td>X</td>";
         }
-        else
-        {
+        else {
             output += "<td>X</td>";
-            if(current[2] === "팔로잉")
+            if (current[2] === "팔로잉")
                 output += "<td>O</td>";
             else
                 output += "<td>X</td>";
@@ -662,7 +766,7 @@ async function OnTweetClean(message) {
 
 async function OnHeartClean(message) {
 
-    
+
     var skipSet = new Set();
     var totalDeleteCount = 0
 
@@ -679,12 +783,10 @@ async function OnHeartClean(message) {
                 continue
             skipSet.add(cellInnverDives[i])
             var unlike = timelineElement[0].querySelectorAll('[data-testid="unlike"]');
-            if (unlike.length == 0)
-            {
+            if (unlike.length == 0) {
                 continue;
             }
-            for(var i=0;i<unlike.length;i++)
-            {
+            for (var i = 0; i < unlike.length; i++) {
                 unlike[i].click();
                 totalDeleteCount++;
             }
@@ -722,8 +824,10 @@ chrome.runtime.onMessage.addListener((obj, sender, response) => {
         OnHeartClean(obj);
     else if (obj.deleteMytweet || obj.deleteRetweet)
         OnTweetClean(obj);
-    else if (obj.type === "changeLogo")
+    else if (obj.type === "changeLogo") {
         changeLogo(obj);
-    else if(obj.type === "hideBlueMark")
+        makeWhiteListButton();
+    }
+    else if (obj.type === "hideBlueMark")
         OnHideBlueMark(obj)
 });
