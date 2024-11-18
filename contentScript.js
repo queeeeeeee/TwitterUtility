@@ -661,7 +661,6 @@ function getCookie(name) {
 }
 
 async function OnTweetClean(message) {
-    alert("트윗 삭제 시작");
     const overlay = document.createElement('div');
     overlay.id = 'tweet-clean-overlay'; // ID 추가
     overlay.style.cssText = `
