@@ -311,7 +311,7 @@ async function delete_tweets(id_list, options) {
 			options.countCallback(deletedCount);
 		}
 
-		await sleep(100);
+		await sleep(50);
 	}
 }
 
@@ -334,7 +334,7 @@ async function run(options) {
             next = await log_tweets(options, entries);
             await delete_tweets(tweets_to_delete, options);
             tweets_to_delete = [];
-            await sleep(3000);
+            await sleep(1000);
         }
     } catch (error) {
         console.error("Error in run:", error);
