@@ -322,7 +322,7 @@ async function changeLogo(message) {
         element.style.cssText = 'display: None;'
     }
 
-    element = await findObject('[aria-label="커뮤티"]');
+    element = await findObject('[aria-label="커뮤니티"]');
     if (element) {
         element.style.cssText = 'display: None;'
     }
@@ -333,6 +333,11 @@ async function changeLogo(message) {
     }
 
     element = await findObject('[aria-label="인증된 조직"]');
+    if (element) {
+        element.style.cssText = 'display: None;'
+    }
+
+    element = await findObject('[aria-label="채용"]');
     if (element) {
         element.style.cssText = 'display: None;'
     }
