@@ -61,17 +61,23 @@ const OnHeartClean = async() => {
 }
 
 const OnTweetClean = async() => {
-
-    var value1 = document.getElementById("checkbox1").checked
-    var value2 = document.getElementById("checkbox2").checked
+    var value1 = document.getElementById("checkbox1").checked;
+    var value2 = document.getElementById("checkbox2").checked;
+    var keywords = document.getElementById("excludeKeywords").value
+        .split(',')
+        .map(k => k.trim())
+        .filter(k => k.length > 0);
+    var startDate = document.getElementById("startDate").value;
+    var endDate = document.getElementById("endDate").value;
 
     const activeTab = await getActiveTabURL();
-    var slider = document.getElementById("DelayRange");
     var message = {
-        delay: slider.value,
         deleteRetweet: value1,
         deleteMytweet: value2,
-        isDeleteHeart: false
+        isDeleteHeart: false,
+        excludeKeywords: keywords,
+        startDate: startDate ? new Date(startDate) : new Date(0),
+        endDate: endDate ? new Date(endDate) : new Date()
     }
 
     chrome.tabs.sendMessage(activeTab.id, message, OnResult);
@@ -144,9 +150,6 @@ document.addEventListener("DOMContentLoaded", async() => {
 
 
     if (checkIsTwitter(activeTab) && activeTab.url.includes("with_replies")) {
-        const slidercontainer = document.getElementsByName("slidecontainer")[0];
-        slidercontainer.style.display = ''
-
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '';
 
@@ -155,7 +158,43 @@ document.addEventListener("DOMContentLoaded", async() => {
         var legend = document.createElement('legend');
         legend.textContent = '트윗 청소기 옵션';
         fieldset.appendChild(legend);
-        fieldset.appendChild(slidercontainer)
+
+        var keywordsDiv = document.createElement('div');
+        keywordsDiv.style.marginBottom = '10px';
+        var keywordsLabel = document.createElement('label');
+        keywordsLabel.textContent = '제외할 키워드 (쉼표로 구분)';
+        var keywordsInput = document.createElement('input');
+        keywordsInput.type = 'text';
+        keywordsInput.id = 'excludeKeywords';
+        keywordsInput.style.width = '100%';
+        keywordsDiv.appendChild(keywordsLabel);
+        keywordsDiv.appendChild(keywordsInput);
+        fieldset.appendChild(keywordsDiv);
+
+        var dateRangeDiv = document.createElement('div');
+        dateRangeDiv.style.marginBottom = '10px';
+        
+        var startDateDiv = document.createElement('div');
+        var startDateLabel = document.createElement('label');
+        startDateLabel.textContent = '시작 날짜: ';
+        var startDateInput = document.createElement('input');
+        startDateInput.type = 'date';
+        startDateInput.id = 'startDate';
+        startDateDiv.appendChild(startDateLabel);
+        startDateDiv.appendChild(startDateInput);
+        
+        var endDateDiv = document.createElement('div');
+        var endDateLabel = document.createElement('label');
+        endDateLabel.textContent = '종료 날짜: ';
+        var endDateInput = document.createElement('input');
+        endDateInput.type = 'date';
+        endDateInput.id = 'endDate';
+        endDateDiv.appendChild(endDateLabel);
+        endDateDiv.appendChild(endDateInput);
+        
+        dateRangeDiv.appendChild(startDateDiv);
+        dateRangeDiv.appendChild(endDateDiv);
+        fieldset.appendChild(dateRangeDiv);
 
         var checkbox1Div = document.createElement('div');
         checkbox1Div.style.display = 'flex';
@@ -186,16 +225,33 @@ document.addEventListener("DOMContentLoaded", async() => {
         label2.setAttribute('for', 'checkbox2');
         checkbox2Div.appendChild(label2);
         fieldset.appendChild(checkbox2Div);
+        
+        checkbox2Div.style.display = 'none';
 
-        container.appendChild(fieldset)
+        container.appendChild(fieldset);
 
         var button = document.createElement('button');
         button.onclick = OnTweetClean;
-        button.classList.add("button-17")
+        button.classList.add("button-17");
         button.innerHTML = "트윗 청소하기";
-        button.style = "margin-top: 1rem;margin-bottom: 1rem"
+        button.style = "margin-top: 1rem;margin-bottom: 1rem";
         container.appendChild(button);
 
+        chrome.storage.sync.get([
+            "excludeKeywords"
+        ], function(items) {
+            if (items.excludeKeywords) keywordsInput.value = items.excludeKeywords;
+            
+            startDateInput.valueAsDate = new Date(0);
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0);
+            endDateInput.valueAsDate = tomorrow;
+        });
+
+        keywordsInput.addEventListener('change', function() {
+            chrome.storage.sync.set({ "excludeKeywords": this.value });
+        });
     } else if ((checkIsTwitter(activeTab))&& activeTab.url.includes("likes")) {
         const container = document.getElementsByName("container")[0];
         container.innerHTML = '';

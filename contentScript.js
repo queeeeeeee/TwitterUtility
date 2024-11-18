@@ -322,7 +322,7 @@ async function changeLogo(message) {
         element.style.cssText = 'display: None;'
     }
 
-    element = await findObject('[aria-label="커뮤니티"]');
+    element = await findObject('[aria-label="커뮤티"]');
     if (element) {
         element.style.cssText = 'display: None;'
     }
@@ -444,7 +444,7 @@ async function OnRandom() {
     while (true) {
 
         if (initialUrl != window.location.href) {
-            alert("추첨 취소됨");
+            alert("추첨 소됨");
             return;
         }
 
@@ -649,119 +649,147 @@ async function OnRetweetStatics() {
     //newWindow.document.write(log);
 }
 
+function getCookie(name) {
+	const value = `; ${document.cookie}`;
+	const parts = value.split(`; ${name}=`);
+	if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 async function OnTweetClean(message) {
+    alert("트윗 삭제 시작");
+    const overlay = document.createElement('div');
+    overlay.id = 'tweet-clean-overlay'; // ID 추가
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
 
+    const messageText = document.createElement('div');
+    messageText.style.cssText = `
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+    `;
+    messageText.textContent = '트윗 청소중...';
 
-    window.focus();
-    window.scroll(0, 0);
-    await sleep(500);
+    const actionButton = document.createElement('button');
+    actionButton.style.cssText = `
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    `;
+    actionButton.textContent = '취소';
+    actionButton.addEventListener('mouseover', () => {
+        actionButton.style.backgroundColor = '#c0392b';
+    });
+    actionButton.addEventListener('mouseout', () => {
+        actionButton.style.backgroundColor = '#e74c3c';
+    });
+    actionButton.addEventListener('click', () => {
+        overlay.remove();
+        window.location.reload();
+    });
 
-    var scrollCounter = 0
+    const statusText = document.createElement('div');
+    statusText.style.cssText = `
+        color: #cccccc;
+        font-size: 16px;
+        text-align: center;
+        margin: 10px 0 20px 0;
+        max-width: 80%;
+        word-wrap: break-word;
+    `;
+    statusText.textContent = '시작 중...';
 
-    var delay = message.delay
-    var deleteRetweet = message.deleteRetweet
-    var deleteMytweet = message.deleteMytweet
+    const countText = document.createElement('div');
+    countText.style.cssText = `
+        color: #cccccc;
+        font-size: 16px;
+        text-align: center;
+        margin-bottom: 20px;
+    `;
+    countText.textContent = '삭제된 트윗: 0개';
 
-    var notMyTweetSet = new Set();
-    var totalDeleteCount = 0;
-    while (true) {
-        if (!deleteRetweet && !deleteMytweet)
-            break
+    overlay.appendChild(messageText);
+    overlay.appendChild(actionButton);
+    overlay.insertBefore(statusText, actionButton);
+    overlay.insertBefore(countText, actionButton);
 
-        var deletecount = 0;
+    document.body.appendChild(overlay);
 
-        var timelineElement = document.querySelectorAll('[aria-label^="타임라인:"]');
-        if (timelineElement.length == 0) {
-            throw ("Timeline find failed");
+    let deletedCount = 0;
+
+    const delete_options = {
+        "old_tweets": false,
+        "unretweet": message.deleteRetweet,
+        "delete_message_with_url_only": false,
+        "match_any_keywords": message.excludeKeywords || [],
+        "tweets_to_ignore": [],
+        "after_date": message.startDate || new Date(0),
+        "before_date": message.endDate || new Date(),
+        "do_not_remove_pinned_tweet": false,
+        "statusCallback": (status) => {
+            statusText.textContent = status;
+        },
+        "countCallback": (count) => {
+            deletedCount = count;
+            countText.textContent = `삭제된 트윗: ${count}개`;
+        }
+    };
+    
+    try {
+        const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ type: "getHeaders" }, resolve);
+        });
+
+        if (!response.headers || !response.headers.authorization || !response.headers.clientTid) {
+            messageText.textContent = "필요한 인증 정보를 수집 중입니다. 잠시 후 다시 시도해주세요.";
+            actionButton.textContent = '확인';
+            return;
         }
 
-        var cellInnverDives = timelineElement[0].querySelectorAll('[data-testid="cellInnerDiv"]');
-        for (var i = 0; i < cellInnverDives.length; i++) {
-            var cellElement = cellInnverDives[i];
+        const pathSegments = window.location.pathname.split('/');
+        const currentUsername = pathSegments[1]; 
 
-            if (notMyTweetSet.has(cellElement))
-                continue;
+        const runOptions = {
+            ...delete_options,
+            headers: {
+                ...response.headers,
+                username: currentUsername 
+            },
+            csrf_token: getCookie("ct0"),
+            user_id: getCookie("twid").substring(4)
+        };
 
-            var socialContext = cellElement.querySelectorAll('[data-testid="socialContext"]');
-            if (socialContext.length != 0) {
-                if (socialContext[0].childNodes[0].textContent == "재게시했습니다" && deleteRetweet) {
-                    var unretweet = cellElement.querySelectorAll('[aria-label$="재게시. 재게시함"]');
+        await run(runOptions);
+        //await sleep(5000);
+        
+        messageText.textContent = '트윗 청소가 완료되었습니다!';
+        statusText.textContent = `총 ${deletedCount}개의 트윗이 삭제되었습니다.`;
+        countText.style.display = 'none';
+        actionButton.textContent = '확인';
 
-                    if (unretweet.length == 0) {
-                        continue;
-                    }
-
-                    (unretweet[0]).click();
-                    await sleep(delay);
-                    var unretweetConfirm = document.querySelectorAll('[data-testid="unretweetConfirm"]');
-                    unretweetConfirm[0].click();
-                    deletecount += 1;
-                }
-            } else if (deleteMytweet) {
-                var moreButton = cellElement.querySelectorAll('[aria-label="더 보기"]');
-
-                if (moreButton.length == 0) {
-                    continue;
-                }
-
-                moreButton[0].click();
-                await sleep(delay)
-
-                var dropdown = document.querySelectorAll('[data-testid="Dropdown"]');
-
-                if (dropdown.length == 0) {
-                    continue;
-                }
-
-                var firstButton = dropdown[0].querySelectorAll('[role="menuitem"]')[0];
-
-                if (firstButton.querySelector('span').textContent == "삭제하기") {
-                    firstButton.click();
-                    await sleep(delay);
-                    var button = document.querySelectorAll('[data-testid="confirmationSheetConfirm"]');
-                    if (button.length != 0) {
-                        button[0].click();
-                        deletecount += 1;
-                    }
-                } else {
-                    dropdown[0].parentNode.removeChild(dropdown[0]);
-                    notMyTweetSet.add(cellElement);
-                }
-            }
-
-            await sleep(delay);
-        }
-        totalDeleteCount += deletecount;
-
-        var flag = false;
-        if (deletecount <= 10) {
-            while (true) {
-                var before = window.scrollY
-
-                window.focus();
-                window.scrollBy(0, 400);
-                await sleep(delay);
-                var after = window.scrollY
-
-                if (before == after) {
-                    scrollCounter++;
-                    await sleep(delay);
-                    if (scrollCounter > 10) {
-                        flag = true;
-                        break;
-                    }
-                } else
-                    break;
-            }
-
-            if (flag)
-                break;
-        }
-
-        scrollCounter = 0
+    } catch (error) {
+        console.error("트윗 삭제 중 오류 발생:", error);
+        messageText.textContent = "트윗 청소 중 오류가 발생했습니다.";
+        actionButton.textContent = '확인';
     }
-
-    alert(totalDeleteCount + "개의 트윗 삭제 완료!");
 }
 
 async function OnHeartClean(message) {

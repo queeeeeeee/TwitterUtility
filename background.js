@@ -76,3 +76,50 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     }
 })
 
+chrome.webRequest.onBeforeRequest.addListener(
+    function (details) {
+      if (details.method === "POST") {
+        // console.log("Captured POST request:", details);
+      }
+    },
+    { urls: ["<all_urls>"] }, 
+    ["requestBody"] 
+  );
+
+let savedHeaders = {
+    authorization: null,
+    clientTid: null,
+    clientUuid: null
+};
+
+chrome.webRequest.onBeforeSendHeaders.addListener(
+    function (details) {
+        if (details.url.includes("twitter.com") || details.url.includes("x.com")) {
+            const headers = details.requestHeaders;
+            headers.forEach(header => {
+                switch (header.name.toLowerCase()) {
+                    case 'authorization':
+                        savedHeaders.authorization = header.value;
+                        break;
+                    case 'x-client-transaction-id':
+                        savedHeaders.clientTid = header.value;
+                        break;
+                    case 'x-client-uuid':
+                        savedHeaders.clientUuid = header.value;
+                        break;
+                }
+            });
+        }
+        return { requestHeaders: details.requestHeaders };
+    },
+    { urls: ["*://*.twitter.com/*", "*://*.x.com/*"] },
+    ["requestHeaders"]
+);
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "getHeaders") {
+        sendResponse({ 
+            headers: savedHeaders 
+        });
+    }
+});
