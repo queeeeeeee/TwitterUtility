@@ -45,12 +45,11 @@ async function sleep(ms) {
 
 async function fetch_tweets(options, cursor = null) {
 	try {
-		// Rate limit 체크 및 대기
 		if (is_rate_limited) {
 			if (options.statusCallback) {
-				options.statusCallback("Rate limit reached. Waiting 1 minute...");
+				options.statusCallback("Rate limit reached. Waiting 3 minute...");
 			}
-			await new Promise(resolve => setTimeout(resolve, 60000));
+			await sleep(1000 * 180);
 			is_rate_limited = false;
 		}
 
@@ -287,9 +286,9 @@ async function delete_tweets(id_list, options) {
 		if (!response.ok) {
 			if (response.status === 429) {
 				if (options.statusCallback) {
-					options.statusCallback("Rate limit reached. Waiting 1 minute...");
+					options.statusCallback("Rate limit reached. Waiting 3 minute...");
 				}
-				await sleep(1000 * 60);
+				await sleep(1000 * 180);
 				i -= 1;
 				continue;
 			}
