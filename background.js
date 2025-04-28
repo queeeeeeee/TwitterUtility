@@ -89,7 +89,8 @@ chrome.webRequest.onBeforeRequest.addListener(
 let savedHeaders = {
     authorization: null,
     clientTid: null,
-    clientUuid: null
+    clientUuid: null,
+    platform: null
 };
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
@@ -106,6 +107,9 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
                         break;
                     case 'x-client-uuid':
                         savedHeaders.clientUuid = header.value;
+                        break;
+                    case 'sec-ch-ua-platform':
+                        savedHeaders.platform = header.value
                         break;
                 }
             });

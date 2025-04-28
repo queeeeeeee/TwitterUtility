@@ -3,6 +3,7 @@ var ua = navigator.userAgentData.brands.map(brand => `"${brand.brand}";v="${bran
 var client_tid = null;
 var client_uuid = null;
 var csrf_token = null;
+var platform = null;
 var random_resource = "OAx9yEcW3JA9bPo63pcYlA";
 var random_resource_old_tweets = "H8OOoI-5ZE4NxgRr8lfyWg"
 var language_code = navigator.language.split("-")[0]
@@ -81,7 +82,7 @@ async function fetch_tweets(options, cursor = null) {
 			"content-type": "application/json",
 			"sec-ch-ua": ua,
 			"sec-ch-ua-mobile": "?0",
-			"sec-ch-ua-platform": "\"Windows\"",
+			"sec-ch-ua-platform": platform,
 			"sec-fetch-dest": "empty",
 			"sec-fetch-mode": "cors",
 			"sec-fetch-site": "same-origin",
@@ -270,7 +271,7 @@ async function delete_tweets(id_list, options) {
 			"content-type": "application/json",
 			"sec-ch-ua": ua,
 			"sec-ch-ua-mobile": "?0",
-			"sec-ch-ua-platform": "\"Windows\"",
+			"sec-ch-ua-platform": platform,
 			"sec-fetch-dest": "empty",
 			"sec-fetch-mode": "cors",
 			"sec-fetch-site": "same-origin",
@@ -334,6 +335,7 @@ async function run(options) {
 	csrf_token = options.csrf_token;
 	user_id = options.user_id;
 	username = options.headers.username;
+	platform = options.headers.platform
 	deletedCount = 0;
 	tweets_to_delete = [];
 	tweets_to_delete_text = [];
