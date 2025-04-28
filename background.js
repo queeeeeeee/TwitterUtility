@@ -94,7 +94,7 @@ let savedHeaders = {
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
     function (details) {
-        if (details.url.includes("twitter.com") || details.url.includes("x.com")) {
+        if (details.url.includes("UserTweetsAndReplies") && details.url.includes("x.com")) {
             const headers = details.requestHeaders;
             headers.forEach(header => {
                 switch (header.name.toLowerCase()) {

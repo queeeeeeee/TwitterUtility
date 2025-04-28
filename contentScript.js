@@ -749,6 +749,7 @@ async function OnTweetClean(message) {
         "before_date": message.endDate || new Date(),
         "do_not_remove_pinned_tweet": false,
         "statusCallback": (status) => {
+            console.log(status)
             statusText.textContent = status;
         },
         "countCallback": (count) => {
