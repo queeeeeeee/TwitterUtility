@@ -18,6 +18,8 @@ var is_running = false
 var is_rate_limited = false
 var deletedCount = 0
 var retries = 0
+var id = null;
+
 const max_retries = 5
 
 function buildAcceptLanguageString() {
@@ -58,7 +60,7 @@ async function fetch_tweets(options, cursor = null) {
 
 		let count = "20";
 		let final_cursor = cursor ? `%22cursor%22%3A%22${cursor}%22%2C` : "";
-		let resource = options["old_tweets"] ? random_resource_old_tweets : random_resource
+		let resource = id;// options["old_tweets"] ? random_resource_old_tweets : random_resource
 		let endpoint = options["old_tweets"] ? "UserTweets" : "UserTweetsAndReplies"
 		var base_url = `https://x.com/i/api/graphql/${resource}/${endpoint}`;
 
@@ -336,6 +338,7 @@ async function run(options) {
 	user_id = options.user_id;
 	username = options.headers.username;
 	platform = options.headers.platform
+	id = options.headers.id
 	deletedCount = 0;
 	tweets_to_delete = [];
 	tweets_to_delete_text = [];

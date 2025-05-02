@@ -58,6 +58,13 @@ function urlEndsWith(tab, text) {
     return tab.url.endsWith(text);
 }
 
+
+function extractQueryIdFromUrl(url) {
+    const match = url.match(/graphql\/([^/]+)/);
+    return match ? match[1] : null;
+  }
+  
+
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status != "complete")
         return;
@@ -90,13 +97,15 @@ let savedHeaders = {
     authorization: null,
     clientTid: null,
     clientUuid: null,
-    platform: null
+    platform: null,
+    id: null
 };
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
     function (details) {
         if (details.url.includes("UserTweetsAndReplies") && details.url.includes("x.com")) {
             const headers = details.requestHeaders;
+            savedHeaders.id = extractQueryIdFromUrl(details.url)
             headers.forEach(header => {
                 switch (header.name.toLowerCase()) {
                     case 'authorization':
