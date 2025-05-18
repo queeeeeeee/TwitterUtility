@@ -790,6 +790,7 @@ async function OnTweetClean(message) {
         console.log(log)
 
     } catch (error) {
+        console.log(log)
         console.error("트윗 삭제 중 오류 발생:", error);
         messageText.textContent = "트윗 청소 중 오류가 발생했습니다.";
         actionButton.textContent = '확인';
