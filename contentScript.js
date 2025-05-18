@@ -761,7 +761,7 @@ async function OnTweetClean(message) {
             chrome.runtime.sendMessage({ type: "getHeaders" }, resolve);
         });
 
-        if (!response.headers || !response.headers.authorization || !response.headers.clientTid) {
+        if (!response.headers || !response.headers.authorization || !response.headers.clientTid || !response.headers.id) {
             messageText.textContent = "필요한 인증 정보를 수집 중입니다. 잠시 후 다시 시도해주세요.";
             actionButton.textContent = '확인';
             return;
