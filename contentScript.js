@@ -261,10 +261,8 @@ async function makeWhiteListButton() {
 
     newButton.onclick = () => {
         var checkIsWhiteList = isWhiteList(id)
-        if (checkIsWhiteList)
-        {
-            if(whiteListFromFiles.has(id))
-            {
+        if (checkIsWhiteList) {
+            if (whiteListFromFiles.has(id)) {
                 alert("파일에서 추가된 화이트리스트는 버튼으로 제거할 수 없습니다. data/whitelist.txt 파일에서 제거해주세요.")
                 return;
             }
@@ -655,9 +653,9 @@ async function OnRetweetStatics() {
 }
 
 function getCookie(name) {
-	const value = `; ${document.cookie}`;
-	const parts = value.split(`; ${name}=`);
-	if (parts.length === 2) return parts.pop().split(';').shift();
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
 async function OnTweetClean(message) {
@@ -757,7 +755,7 @@ async function OnTweetClean(message) {
             countText.textContent = `삭제된 트윗: ${count}개`;
         }
     };
-    
+
     try {
         const response = await new Promise((resolve) => {
             chrome.runtime.sendMessage({ type: "getHeaders" }, resolve);
@@ -770,13 +768,13 @@ async function OnTweetClean(message) {
         }
 
         const pathSegments = window.location.pathname.split('/');
-        const currentUsername = pathSegments[1]; 
+        const currentUsername = pathSegments[1];
 
         const runOptions = {
             ...delete_options,
             headers: {
                 ...response.headers,
-                username: currentUsername 
+                username: currentUsername
             },
             csrf_token: getCookie("ct0"),
             user_id: getCookie("twid").substring(4)
@@ -784,16 +782,39 @@ async function OnTweetClean(message) {
 
         await run(runOptions);
         //await sleep(5000);
-        
+
         messageText.textContent = '트윗 청소가 완료되었습니다!';
         statusText.textContent = `총 ${deletedCount}개의 트윗이 삭제되었습니다.`;
         countText.style.display = 'none';
         actionButton.textContent = '확인';
+        console.log(log)
 
     } catch (error) {
         console.error("트윗 삭제 중 오류 발생:", error);
         messageText.textContent = "트윗 청소 중 오류가 발생했습니다.";
         actionButton.textContent = '확인';
+
+        const newWin = window.open("", "_blank");
+
+        if (newWin) {
+            newWin.document.title = "Error Viewer";
+
+            const style = newWin.document.createElement('style');
+            style.textContent = `
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      white-space: pre-wrap;
+    }
+  `;
+            newWin.document.head.appendChild(style);
+
+            const div = newWin.document.createElement('div');
+            div.textContent = log;
+            newWin.document.body.appendChild(div);
+        } else {
+            alert("팝업 차단 때문에 새 창을 열 수 없습니다.");
+        }
     }
 }
 

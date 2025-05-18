@@ -20,6 +20,8 @@ var deletedCount = 0
 var retries = 0
 var id = null;
 
+var log = ""
+
 const max_retries = 5
 
 function buildAcceptLanguageString() {
@@ -99,6 +101,8 @@ async function fetch_tweets(options, cursor = null) {
 		// 	headers["x-client-uuid"] = client_uuid;
 		// }
 
+
+
 		const response = await fetch(final_url, {
 			"headers": headers,
 			"referrer": `https://x.com/${username}/with_replies`,
@@ -108,6 +112,8 @@ async function fetch_tweets(options, cursor = null) {
 			"mode": "cors",
 			"credentials": "include"
 		});
+
+		log += "fetch " + final_url + " " + response.status + "\n"
 
 		if (!response.ok) {
 			retries = retries + 1
@@ -297,6 +303,9 @@ async function delete_tweets(id_list, options) {
 			"mode": "cors",
 			"credentials": "include"
 		});
+
+		log += "delete https://x.com/i/api/graphql/VaenaVgh5q5ih7kvyVjgtg/DeleteTweet" + " for " + id_list[i] + " : "  + response.status + "\n"
+
 		if (!response.ok) {
 			if (response.status === 429) {
 				if (options.statusCallback) {
@@ -331,6 +340,7 @@ async function delete_tweets(id_list, options) {
 
 async function run(options) {
 	retries = 0
+	log = ""
     authorization = options.headers.authorization;
     client_tid = options.headers.clientTid;
     client_uuid = options.headers.clientUuid;
@@ -347,6 +357,10 @@ async function run(options) {
     var entries = undefined;
     is_running = true;
 
+	log += "Tweet Delete Log\n"
+	log += "Initial Settings\n" + options.headers.id + "\n"
+	log += "\n==========================\n"
+
     try {
         while (next != "finished" && stop_signal != true) {
             entries = await fetch_tweets(options, next);
@@ -357,7 +371,9 @@ async function run(options) {
             await sleep(1000);
         }
     } catch (error) {
+		log += error
         console.error("Error in run:", error);
+		throw error
     } finally {
         is_running = false;
     }
