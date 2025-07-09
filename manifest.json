@@ -1,6 +1,6 @@
 {
     "name": "Twitter Utility.",
-    "version": "1.8.1",
+    "version": "1.8.2",
     "web_accessible_resources": [
         {
             "resources": ["data/*"],

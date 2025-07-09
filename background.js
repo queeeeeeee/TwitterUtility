@@ -64,6 +64,10 @@ function extractQueryIdFromUrl(url) {
     return match ? match[1] : null;
   }
   
+function extractFeaturesFromUrl(url) {
+    const match = url.match(/features=([^&]+)/);
+    return match ? match[1] : null;
+}
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status != "complete")
@@ -98,7 +102,8 @@ let savedHeaders = {
     clientTid: null,
     clientUuid: null,
     platform: null,
-    id: null
+    id: null,
+    features: null
 };
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
@@ -106,6 +111,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
         if (details.url.includes("UserTweetsAndReplies") && details.url.includes("x.com")) {
             const headers = details.requestHeaders;
             savedHeaders.id = extractQueryIdFromUrl(details.url)
+            savedHeaders.features = extractFeaturesFromUrl(details.url);
             headers.forEach(header => {
                 switch (header.name.toLowerCase()) {
                     case 'authorization':
