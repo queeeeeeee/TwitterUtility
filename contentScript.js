@@ -122,16 +122,11 @@ function waitForNonNullAsync(objGetter, interval = 100) {
 }
 
 function getID(target) {
-    var finalName = "error"
-    var userName = target.querySelector('[data-testid="User-Name"]')
-    if (userName) {
-        var idHints = userName.querySelectorAll('[style="text-overflow: unset;"]')
-        var atStartingElements = Array.from(idHints).filter(element =>
-            element.innerHTML.trim().startsWith('@')
-        );
-        finalName = atStartingElements[0].innerHTML
-    }
-    return finalName
+    const userName = target.querySelector('[data-testid="User-Name"]');
+    if (!userName) return "error";
+
+    const match = userName.textContent.match(/@([a-zA-Z0-9_]+)/);
+    return match ? match[1] : "error";
 }
 
 async function attachBlueBox(target, id) {
